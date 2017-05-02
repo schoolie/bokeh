@@ -61,8 +61,8 @@ export class DataProvider
 
   updateSource: () ->
     # XXX: We should say `@source.data = @data`, but data was updated in-place,
-    # so that would be a no-op. We have to trigger change events manually instead.
-    @source.trigger("change:data", @, @source.attributes['data'])
+    # so that would be a no-op. We have to emit change events manually instead.
+    @source.properties.data.change.emit(@, @source.attributes['data'])
 
   getItemMetadata: (index) -> null
 
@@ -101,21 +101,21 @@ export class DataTableView extends WidgetView
   initialize: (options) ->
     super(options)
     wait_for_element(@el, () => @render())
-    @listenTo(@model, 'change', () => @render())
-    @listenTo(@model.source, 'change:data', () => @updateGrid())
-    @listenTo(@model.source, 'stream', () => @updateGrid())
-    @listenTo(@model.source, 'patch', () => @updateGrid())
-    @listenTo(@model.source, 'change:selected', () => @updateSelection())
+    @listenTo(@model.change, () => @render())
+    @listenTo(@model.source.properties.data.change, () => @updateGrid())
+    @listenTo(@model.source.streaming, () => @updateGrid())
+    @listenTo(@model.source.patching, () => @updateGrid())
+    @listenTo(@model.source.properties.selected.change, () => @updateSelection())
 
   updateGrid: () ->
     @data.constructor(@model.source)
     @grid.invalidate()
     @grid.render()
 
-    # XXX: Workaround for `@model.source.trigger('change')` not triggering an event within python.
+    # XXX: Workaround for `@model.source.change.emit()` not emitting an event within python.
     # But we still need it to trigger render updates
     @model.source.data = @model.source.data
-    @model.source.trigger('change')
+    @model.source.change.emit()
 
   updateSelection: () ->
     selected = @model.source.selected
